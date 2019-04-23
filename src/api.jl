@@ -21,5 +21,7 @@ function instanced_program(
 		for (k, v) in uniforms
 			println(io, "uniform ", type_string(T), ";")
 		end
+		println(io)
+		println(io, shader)
 	end
 end
