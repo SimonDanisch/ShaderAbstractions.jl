@@ -73,16 +73,29 @@ convert_uniform(x::Colorant{T}) where T <: NativeNumbers = x
 
 convert_uniform(x::Colorant{T}) where T = return mapc(native_type(T), x)
 
+function convert_uniform(x::AbstractVector{T}) where T
+	return convert(Vector{native_type(T)}, x)
+end
 
+function convert_uniform(x::NamedTuple{Names, Types}) where {Names, Types}
+	return map(convert_uniform, x)
+end
 function convert_uniform(x::T) where T
 	all(t-> isbits(t), fieldtypes(T)) || error("All field types need to be isbits. Found: $(T) with $(fieldtypes(T))")
 	return x
 end
 
 
-function convert_uniform(x::NamedTuple{Names, Types}) where {Names, Types}
-	return map(convert_uniform, x)
-end
+type_prefix(x::Type{T}) where {T <: Union{FixedPoint, Float32, Float16}} = ""
+type_prefix(x::Type{T}) where {T <: Float64} = "d"
+type_prefix(x::Type{Cint}) = "i"
+type_prefix(x::Type{T}) where {T <: Union{Cuint, UInt8, UInt16}} = "u"
+
+type_postfix(x::Type{Float64}) = "dv"
+type_postfix(x::Type{Float32}) = "fv"
+type_postfix(x::Type{Cint})    = "iv"
+type_postfix(x::Type{Cuint})   = "uiv"
+
 
 type_string(x::T) where {T} = type_string(T)
 type_string(t::Type{Float32}) = "float"
@@ -91,22 +104,22 @@ type_string(t::Type{Cuint}) = "uint"
 type_string(t::Type{Cint}) = "int"
 
 function type_string(t::Type{T}) where {T <: Union{StaticVector, Colorant}}
-	return string(opengl_prefix(eltype(T)), "vec", length(T))
+	return string(type_prefix(eltype(T)), "vec", length(T))
 end
 
 function type_string(t::Type{<: AbstractSamplerBuffer{T}}) where T
-	string(opengl_prefix(eltype(T)), "samplerBuffer")
+	string(type_prefix(eltype(T)), "samplerBuffer")
 end
 
 function type_string(t::Type{<: AbstractSampler{T, D}}) where {T, D}
-    str = string(opengl_prefix(eltype(T)), "sampler", D, "D")
+    str = string(type_prefix(eltype(T)), "sampler", D, "D")
     is_arraysampler(t) && (str *= "Array")
     return str
 end
 
 function type_string(t::Type{<: StaticMatrix})
     M, N = size(t)
-    string(opengl_prefix(eltype(t)), "mat", M == N ? M : string(M, "x", N))
+    string(type_prefix(eltype(t)), "mat", M == N ? M : string(M, "x", N))
 end
 
 type_string(t::Type) = error("Type $t not supported")
