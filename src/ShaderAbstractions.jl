@@ -1,7 +1,7 @@
 module ShaderAbstractions
 
 using StaticArrays, ColorTypes, FixedPointNumbers, StructArrays
-import GeometryBasics, GeometryTypes
+import GeometryBasics, GeometryTypes, Tables
 
 include("types.jl")
 include("uniforms.jl")
