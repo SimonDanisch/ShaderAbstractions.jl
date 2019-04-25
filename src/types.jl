@@ -62,8 +62,8 @@ end
 
 Tables.schema(va::VertexArray) = Tables.schema(getfield(va, :data))
 
-GeometryBasics.column_names(va::VertexArray) = GeometryBasics.column_names(getfield(va, :data))
-GeometryBasics.column_types(va::VertexArray) = GeometryBasics.column_types(getfield(va, :data))
+# GeometryBasics.column_names(va::VertexArray) = GeometryBasics.column_names(getfield(va, :data))
+# GeometryBasics.column_types(va::VertexArray) = GeometryBasics.column_types(getfield(va, :data))
 
 
 Base.size(x::VertexArray) = size(x.data)

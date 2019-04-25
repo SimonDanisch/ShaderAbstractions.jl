@@ -2,8 +2,8 @@
 # All the types native to ogl, wgl and vulkan shaders
 
 const number_types = (Float32, Cint, Cuint, Cdouble)
-const small_vecs = ((StaticVector{N, T} for T in number_types, N in (2, 3, 4))...,)
-const small_mats = (SArray{Tuple{i, j}, T, 2, i * j} for T in number_types, i in (2, 3, 4), j in (2, 3, 4)...)
+const small_vecs = (((StaticVector{N, T} for T in number_types, N in (2, 3, 4)))...,)
+const small_mats = (((StaticArray{Tuple{i, j}, T, 2} for T in ShaderAbstractions.number_types, i in (2, 3, 4), j in (2, 3, 4)))...,)
 const small_arrays = (small_vecs..., small_mats...)
 const native_types = (number_types..., small_arrays...)
 

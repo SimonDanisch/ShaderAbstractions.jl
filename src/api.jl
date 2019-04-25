@@ -35,11 +35,11 @@ function InstancedProgram(
         end
 
         println(io, "\n// Uniforms: ")
-        for (k, v) in uniforms
+        for (name, v) in uniforms
             vc = convert_uniform(context, v)
             T = typeof(vc)
             println(io, "uniform ", type_string(context, T), " $name;")
-            c_uniforms[k] = vc
+            c_uniforms[name] = vc
         end
         println(io)
         println(io, shader)
