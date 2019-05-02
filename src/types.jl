@@ -17,6 +17,16 @@ VertexArray, holds the vertex info a vertex shaders maps over.
 """
 abstract type AbstractVertexArray{T} <: DenseVector{T} end
 
+struct ArrayUpdateObservable{T, N}
+    resize::Observable{AbstractArray{T, N}}
+    push::Observable{T}
+    sedindex_linear::Observable{Tuple{Int, T}}
+    sedindex::Observable{Tuple{NTuple{N, Int}, T}}
+    sedindex_array::Observable{Tuple{NTuple{N, UnitRange{Int}}, AbstractArray{T, N}}}
+end
+
+
+
 struct Sampler{T, N} <: AbstractSampler{T, N}
     data::T
     minfilter::Symbol
@@ -24,7 +34,9 @@ struct Sampler{T, N} <: AbstractSampler{T, N}
     repeat::NTuple{N, Symbol}
     anisotropic::Float32
     color_swizzel::Vector{Symbol}
+    setindex_chan::Observable{}
 end
+
 
 function Sampler(
         data::AbstractArray{T, N};
@@ -54,6 +66,13 @@ end
 struct BufferSampler{T} <: AbstractSamplerBuffer{T}
     data::T
 end
+
+struct Buffer{T} <: AbstractVector{T}
+    data::T
+    comm_channel::Observable{Pair{Symbol, Any}}
+end
+
+function
 
 struct VertexArray{ET, Data} <: AbstractVertexArray{ET}
     data::Data
@@ -97,6 +116,9 @@ function VertexArray(mesh::GeometryTypes.AbstractMesh)
 end
 
 function VertexArray(; meta...)
-    m = StructArray(; meta...)
+    buffers = map(meta) do value
+        Buffer(value)
+    end
+    m = StructArray(; buffers...)
     VertexArray{eltype(m), typeof(m)}(m)
 end
