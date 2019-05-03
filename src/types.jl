@@ -17,26 +17,49 @@ VertexArray, holds the vertex info a vertex shaders maps over.
 """
 abstract type AbstractVertexArray{T} <: DenseVector{T} end
 
-struct ArrayUpdateObservable{T, N}
-    resize::Observable{AbstractArray{T, N}}
-    push::Observable{T}
-    sedindex_linear::Observable{Tuple{Int, T}}
-    sedindex::Observable{Tuple{NTuple{N, Int}, T}}
-    sedindex_array::Observable{Tuple{NTuple{N, UnitRange{Int}}, AbstractArray{T, N}}}
+struct ArrayUpdater{T}
+    parent::T
+    update::Observable{Tuple{Function, Tuple}}
 end
 
+function ArrayUpdater(x::T) where T <: AbstractArray
+    ArrayUpdater{T}(x, Observable{Tuple{Function, Tuple}}((identity, ())))
+end
 
+for func in (:resize!, :push!, :setindex!)
+    @eval function Base.$(func)(vec::ArrayUpdater, args...)
+        $(func)(vec.parent, args...)
+        update[] = ($(func), args)
+    end
+end
 
-struct Sampler{T, N} <: AbstractSampler{T, N}
-    data::T
+function connect!(au::ArrayUpdater, array::AbstractArray)
+    on(au.update) do (f, args)
+        f(array, args...)
+    end
+end
+
+macro update_operations(Typ)
+    quote
+        Base.setindex!(A::$Typ, value, idx::Int) = setindex!(updater(A), value, idx)
+        Base.push!(A::$Typ, value) = push!(updater(A), value)
+        Base.resize!(A::$Typ, value) = resize!(updater(A), value)
+        Base.size(A::$Typ) = size(updater(A).parent)
+        Base.getindex(A::$Typ, idx::Int) = getindex(updater(A).parent, idx)
+    end
+end
+
+struct Sampler{T, N, Data} <: AbstractSampler{T, N}
+    data::Data
     minfilter::Symbol
     magfilter::Symbol # magnification
     repeat::NTuple{N, Symbol}
     anisotropic::Float32
     color_swizzel::Vector{Symbol}
-    setindex_chan::Observable{}
+    updates::ArrayUpdater{Data}
 end
-
+updater(x::Sampler) = x.updates
+@update_operations Sampler
 
 function Sampler(
         data::AbstractArray{T, N};
@@ -56,38 +79,52 @@ function Sampler(
     else
         Symbol[]
     end
-    Sampler{T, N}(
+    Sampler{T, N, typeof(data)}(
         data, minfilter, magfilter,
         (x_reapt, y_repeat, z_repeat),
-        anisotropic, swizzel
+        anisotropic, swizzel,
+        ArrayUpdater(data)
     )
 end
 
-struct BufferSampler{T} <: AbstractSamplerBuffer{T}
-    data::T
+struct BufferSampler{T, Data} <: AbstractSamplerBuffer{T}
+    data::Data
+    updates::ArrayUpdater{Data}
+end
+updater(x::BufferSampler) = x.updates
+@update_operations BufferSampler
+
+struct Buffer{T, Data} <: AbstractVector{T}
+    data::Data
+    updates::ArrayUpdater{Data}
+end
+updater(x::Buffer) = x.updates
+@update_operations Buffer
+
+Base.convert(::Type{<: Buffer}, x) = Buffer(x)
+
+Buffer(x::Buffer) = x
+
+function Buffer(obs::Observable)
+    buff = Buffer(obs[])
+    on(obs) do val
+        buff[:] = val
+    end
+    buff
 end
 
-struct Buffer{T} <: AbstractVector{T}
-    data::T
-    comm_channel::Observable{Pair{Symbol, Any}}
+function Buffer(data::Data) where Data <: AbstractVector
+    Buffer{eltype(data), Data}(data, ArrayUpdater(data))
 end
 
-function
-
-struct VertexArray{ET, Data} <: AbstractVertexArray{ET}
+struct VertexArray{T, Data} <: AbstractVertexArray{T}
     data::Data
 end
 
-
 Tables.schema(va::VertexArray) = Tables.schema(getfield(va, :data))
-
-# GeometryBasics.column_names(va::VertexArray) = GeometryBasics.column_names(getfield(va, :data))
-# GeometryBasics.column_types(va::VertexArray) = GeometryBasics.column_types(getfield(va, :data))
-
 
 Base.size(x::VertexArray) = size(x.data)
 Base.getindex(x::VertexArray, i) = getindex(x.data, i)
-
 
 function VertexArray(data::AbstractArray{T}) where T
     return VertexArray{T, typeof(data)}(data)
@@ -116,9 +153,7 @@ function VertexArray(mesh::GeometryTypes.AbstractMesh)
 end
 
 function VertexArray(; meta...)
-    buffers = map(meta) do value
-        Buffer(value)
-    end
+    buffers = Buffer.(meta)
     m = StructArray(; buffers...)
     VertexArray{eltype(m), typeof(m)}(m)
 end
