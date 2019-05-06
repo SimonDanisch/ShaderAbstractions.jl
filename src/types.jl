@@ -81,10 +81,18 @@ function Sampler(
     end
     Sampler{T, N, typeof(data)}(
         data, minfilter, magfilter,
-        (x_reapt, y_repeat, z_repeat),
+        ntuple(i-> (x_repeat, y_repeat, z_repeat)[i], N),
         anisotropic, swizzel,
         ArrayUpdater(data)
     )
+end
+
+function Sampler(obs::Observable; kw...)
+    buff = Sampler(obs[]; kw...)
+    on(obs) do val
+        buff[:] = val
+    end
+    buff
 end
 
 struct BufferSampler{T, Data} <: AbstractSamplerBuffer{T}
@@ -102,6 +110,7 @@ updater(x::Buffer) = x.updates
 @update_operations Buffer
 
 Base.convert(::Type{<: Buffer}, x) = Buffer(x)
+Base.convert(::Type{<: Buffer{T, Data}}, x::Buffer{T, Data}) where {T, Data} = x
 
 Buffer(x::Buffer) = x
 
@@ -143,17 +152,34 @@ function VertexArray(points, faces = nothing; kw_args...)
     end
     VertexArray(data)
 end
+function VertexArray(; meta...)
+    buffers = map(Buffer, values(meta))
+    m = StructArray(; buffers...)
+    VertexArray(m)
+end
 
 function VertexArray(mesh::GeometryTypes.AbstractMesh)
     data = GeometryTypes.attributes(mesh)
     vs = GeometryBasics.Point.(pop!(data, :vertices))
     fs = convert(Vector{GeometryBasics.TriangleFace{Cuint}}, pop!(data, :faces))
     m = GeometryBasics.Mesh(GeometryBasics.meta(vs; data...), fs)
-    VertexArray{eltype(m), typeof(m)}(m)
+    VertexArray(m)
 end
 
-function VertexArray(; meta...)
-    buffers = Buffer.(meta)
-    m = StructArray(; buffers...)
-    VertexArray{eltype(m), typeof(m)}(m)
+
+function VertexArray(mesh_obs::Observable)
+    mesh = mesh_obs[]
+    meta_keys = setdiff(keys(GeometryTypes.attributes(mesh)), [:vertices, :faces])
+    vs = Buffer(map(mesh_obs) do mesh
+        GeometryBasics.Point.(GeometryTypes.vertices(mesh))
+    end)
+    fs = Buffer(map(mesh_obs) do mesh
+        convert(
+            Vector{GeometryBasics.TriangleFace{Cuint}},
+            GeometryTypes.faces(mesh)
+        )
+    end)
+    meta = (k => Buffer(map(x-> GeometryTypes.attributes(x)[k], mesh_obs)) for k in meta_keys)
+    m = GeometryBasics.Mesh(GeometryBasics.meta(vs; meta...), fs)
+    VertexArray(m)
 end

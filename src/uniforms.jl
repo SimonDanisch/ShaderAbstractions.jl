@@ -81,11 +81,18 @@ convert_uniform(context::AbstractContext, x::Colorant{T}) where T <: NativeNumbe
 
 convert_uniform(context::AbstractContext, x::Colorant{T}) where T = mapc(native_type(context, T), x)
 
+convert_uniform(context::AbstractContext, x::AbstractSampler{T, N}) where {T, N} = x
+
+
 function convert_uniform(context::AbstractContext, x::AbstractVector{T}) where T
 	return convert(Vector{native_type(context, T)}, x)
 end
 
 function convert_uniform(context::AbstractContext, x::NamedTuple{Names, Types}) where {Names, Types}
+	return map(convert_uniform(context), x)
+end
+
+function convert_uniform(context::AbstractContext, x::Observable)
 	return map(convert_uniform(context), x)
 end
 function convert_uniform(context::AbstractContext, x::T) where T
@@ -118,7 +125,7 @@ end
 function type_string(context::AbstractContext, t::Type{<: AbstractSamplerBuffer{T}}) where T
 	string(type_prefix(context, eltype(T)), "samplerBuffer")
 end
-
+is_arraysampler(t) = false
 function type_string(context::AbstractContext, t::Type{<: AbstractSampler{T, D}}) where {T, D}
     str = string(type_prefix(context, eltype(T)), "sampler", D, "D")
     is_arraysampler(t) && (str *= "Array")
@@ -129,5 +136,8 @@ function type_string(context::AbstractContext, t::Type{<: StaticMatrix})
     M, N = size(t)
     string(type_prefix(context, eltype(t)), "mat", M == N ? M : string(M, "x", N))
 end
+type_string(context::AbstractContext, t::Bool) = "bool"
+
+type_string(context::AbstractContext, t::Observable) = type_string(context, t[])
 
 type_string(context::AbstractContext, t::Type) = error("Type $t not supported")
