@@ -131,9 +131,16 @@ struct VertexArray{T, Data} <: AbstractVertexArray{T}
 end
 
 Tables.schema(va::VertexArray) = Tables.schema(getfield(va, :data))
+function Tables.columns(vao::VertexArray)
+    s = Tables.schema(vao)
+    return NamedTuple{s.names}(map(x-> getproperty(vao, x), s.names))
+end
+function Base.getproperty(x::VertexArray, name::Symbol)
+    getproperty(getfield(x, :data), name)
+end
+Base.size(x::VertexArray) = size(getfield(x, :data))
+Base.getindex(x::VertexArray, i) = getindex(getfield(x, :data), i)
 
-Base.size(x::VertexArray) = size(x.data)
-Base.getindex(x::VertexArray, i) = getindex(x.data, i)
 
 function VertexArray(data::AbstractArray{T}) where T
     return VertexArray{T, typeof(data)}(data)

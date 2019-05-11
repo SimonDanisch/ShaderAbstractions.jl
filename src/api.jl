@@ -14,7 +14,7 @@ end
 name_type_iter(x) = (s = Tables.schema(x); zip(s.names, s.types))
 
 function getter_function(io, T, t_str, name, plot)
-    println(io, t_str, " get_$(name)(){return $name;};")
+    println(io, t_str, " get_$(name)(){return $name;}")
 end
 
 function InstancedProgram(
@@ -31,14 +31,14 @@ function InstancedProgram(
         println(io, "// Instance inputs: ")
         for (name, T) in name_type_iter(instance)
             t_str = type_string(context, T)
-            println(io, "in ", t_str, " $name;")
+            println(io, "attribute ", t_str, " $name;")
             getter_function(io, T, t_str, name, uniforms)
         end
 
         println(io, "\n// Per instance attributes: ")
         for (name, T) in name_type_iter(per_instance)
             t_str = type_string(context, T)
-            println(io, "in ", t_str, " $name;")
+            println(io, "attribute ", t_str, " $name;")
             getter_function(io, T, t_str, name, uniforms)
         end
 
