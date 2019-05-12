@@ -135,6 +135,11 @@ function Tables.columns(vao::VertexArray)
     s = Tables.schema(vao)
     return NamedTuple{s.names}(map(x-> getproperty(vao, x), s.names))
 end
+function Base.pairs(vao::VertexArray)
+    nt = Tables.columns(vao)
+    return zip(keys(nt), values(nt))
+end
+
 function Base.getproperty(x::VertexArray, name::Symbol)
     getproperty(getfield(x, :data), name)
 end
