@@ -29,7 +29,7 @@ end
 for func in (:resize!, :push!, :setindex!)
     @eval function Base.$(func)(vec::ArrayUpdater, args...)
         $(func)(vec.parent, args...)
-        update[] = ($(func), args)
+        vec.update[] = ($(func), args)
     end
 end
 
