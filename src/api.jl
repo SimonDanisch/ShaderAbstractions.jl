@@ -29,9 +29,30 @@ function InstancedProgram(
         per_instance::AbstractVector;
         uniforms...
     )
+    instance_attributes = sprint() do io
+        println(io, "\n// Per instance attributes: ")
+        for (name, T) in name_type_iter(per_instance)
+            t_str = type_string(context, T)
+            println(io, "attribute ", t_str, " $name;")
+            getter_function(io, T, t_str, name, uniforms)
+        end
+        println(io)
+    end
+    p = Program(
+        context,
+        instance_attributes * vertshader,
+        fragshader,
+        instance; uniforms...
+    )
+    InstancedProgram(p, per_instance)
+end
 
-    # instance = convert_uniform(context, instance)
-    # per_instance = convert_uniform(context, per_instance)
+function Program(
+        context::AbstractContext,
+        vertshader, fragshader,
+        instance::AbstractVector;
+        uniforms...
+    )
     c_uniforms = Dict{Symbol, Any}()
     uniform_block = sprint() do io
         println(io, "\n// Uniforms: ")
@@ -51,14 +72,6 @@ function InstancedProgram(
             println(io, "attribute ", t_str, " $name;")
             getter_function(io, T, t_str, name, uniforms)
         end
-
-        println(io, "\n// Per instance attributes: ")
-        for (name, T) in name_type_iter(per_instance)
-            t_str = type_string(context, T)
-            println(io, "attribute ", t_str, " $name;")
-            getter_function(io, T, t_str, name, uniforms)
-        end
-
         println(io, uniform_block)
         println(io)
         println(io, vertshader)
@@ -67,12 +80,9 @@ function InstancedProgram(
         precision mediump int;
         precision mediump float;\n
     """
-    InstancedProgram(
-        Program(
-            context, instance, c_uniforms,
-            precision * src,
-            precision * uniform_block * fragshader
-        ),
-        per_instance
+    Program(
+        context, instance, c_uniforms,
+        precision * src,
+        precision * uniform_block * fragshader
     )
 end

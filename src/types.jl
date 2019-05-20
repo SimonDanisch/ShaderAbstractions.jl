@@ -60,6 +60,9 @@ struct Sampler{T, N, Data} <: AbstractSampler{T, N}
 end
 updater(x::Sampler) = x.updates
 @update_operations Sampler
+Base.getindex(x::Sampler, i) = getfield(x, :data)[i]
+Base.getindex(x::Sampler) = getindex(x, 1)
+Base.getindex(x::Sampler, i, j) = getfield(x, :data)[i, j]
 
 function Sampler(
         data::AbstractArray{T, N};
