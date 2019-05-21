@@ -112,6 +112,7 @@ end
 updater(x::Buffer) = x.updates
 @update_operations Buffer
 
+Base.convert(::Type{<: Buffer}, x::Buffer) = x
 Base.convert(::Type{<: Buffer}, x) = Buffer(x)
 Base.convert(::Type{<: Buffer{T, Data}}, x::Buffer{T, Data}) where {T, Data} = x
 
