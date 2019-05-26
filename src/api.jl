@@ -33,7 +33,7 @@ function InstancedProgram(
         println(io, "\n// Per instance attributes: ")
         for (name, T) in name_type_iter(per_instance)
             t_str = type_string(context, T)
-            println(io, "attribute ", t_str, " $name;")
+            println(io, "in ", t_str, " $name;")
             getter_function(io, T, t_str, name, uniforms)
         end
         println(io)
@@ -69,7 +69,7 @@ function Program(
         println(io, "// Instance inputs: ")
         for (name, T) in name_type_iter(instance)
             t_str = type_string(context, T)
-            println(io, "attribute ", t_str, " $name;")
+            println(io, "in ", t_str, " $name;")
             getter_function(io, T, t_str, name, uniforms)
         end
         println(io, uniform_block)
@@ -77,12 +77,18 @@ function Program(
         println(io, vertshader)
     end
     precision = """
-        precision mediump int;
-        precision mediump float;\n
+    #version 300 es
+    precision mediump int;
+    precision mediump float;
+    precision mediump sampler2D;
+    precision mediump sampler3D;
+
     """
     Program(
         context, instance, c_uniforms,
         precision * src,
-        precision * uniform_block * fragshader
+        precision * """
+        out vec4 fragment_color;
+        """ * uniform_block * fragshader
     )
 end

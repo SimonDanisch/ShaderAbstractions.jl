@@ -15,7 +15,7 @@ const NativeTypes = Union{native_types...}
 
 
 """
-	native_type(context, Int128)
+    native_type(context, Int128)
 Returns a native type for a non native type.
 E.g. native_type(context, Int128) -> Cint
 """
@@ -39,17 +39,17 @@ native_type(context::AbstractContext, x::Type{<: StaticArray{S, T, N}}) where {S
 map_t(f, tuple) = map_t(f, (), tuple)
 map_t(f, result, ::Type{Tuple{}}) = Tuple{result...}
 function map_t(f, result, T::Type{<: Tuple})
-	map_t(
-		f,
-		(result..., f(Base.tuple_type_head(T))),
-		Base.tuple_type_tail(T)
-	)
+    map_t(
+        f,
+        (result..., f(Base.tuple_type_head(T))),
+        Base.tuple_type_tail(T)
+    )
 end
 
 native_type(context::AbstractContext) = x-> native_type(context, x)
 
 function native_type(context::AbstractContext, ::Type{NamedTuple{Names, Types}}) where {Names, Types}
-	return NamedTuple{Names, map_t(native_type(context), Types)}
+    return NamedTuple{Names, map_t(native_type(context), Types)}
 end
 
 """
@@ -71,7 +71,7 @@ convert_uniform(context::AbstractContext, x::StaticVector{N, T}) where {N, T <: 
 Static Array with non native uniform type
 """
 function convert_uniform(context::AbstractContext, x::StaticVector{N, T}) where {N, T}
-	convert(similar_type(x, native_type(context, T)), x)
+    convert(similar_type(x, native_type(context, T)), x)
 end
 
 """
@@ -85,19 +85,19 @@ convert_uniform(context::AbstractContext, x::AbstractSampler{T, N}) where {T, N}
 
 
 function convert_uniform(context::AbstractContext, x::AbstractVector{T}) where T
-	return convert(Vector{native_type(context, T)}, x)
+    return convert(Vector{native_type(context, T)}, x)
 end
 
 function convert_uniform(context::AbstractContext, x::NamedTuple{Names, Types}) where {Names, Types}
-	return map(convert_uniform(context), x)
+    return map(convert_uniform(context), x)
 end
 
 function convert_uniform(context::AbstractContext, x::Observable)
-	return map(convert_uniform(context), x)
+    return map(convert_uniform(context), x)
 end
 function convert_uniform(context::AbstractContext, x::T) where T
-	all(t-> isbits(t), fieldtypes(T)) || error("All field types need to be isbits. Found: $(T) with $(fieldtypes(T))")
-	return x
+    all(t-> isbits(t), fieldtypes(T)) || error("All field types need to be isbits. Found: $(T) with $(fieldtypes(T))")
+    return x
 end
 
 
@@ -119,15 +119,15 @@ type_string(context::AbstractContext, t::Type{Cuint}) = "uint"
 type_string(context::AbstractContext, t::Type{Cint}) = "int"
 
 function type_string(context::AbstractContext, t::Type{T}) where {T <: Union{StaticVector, Colorant}}
-	return string(type_prefix(context, eltype(T)), "vec", length(T))
+    return string(type_prefix(context, eltype(T)), "vec", length(T))
 end
 
 function type_string(context::AbstractContext, t::Type{<: AbstractSamplerBuffer{T}}) where T
-	string(type_prefix(context, eltype(T)), "samplerBuffer")
+    string(type_prefix(context, eltype(T)), "samplerBuffer")
 end
 is_arraysampler(t) = false
 function type_string(context::AbstractContext, t::Type{<: AbstractSampler{T, D}}) where {T, D}
-    str = string(type_prefix(context, eltype(T)), "sampler", D, "D")
+    str = string(type_prefix(context, eltype(T)), "sampler", D == 1 ? 2 : D, "D")
     is_arraysampler(t) && (str *= "Array")
     return str
 end
