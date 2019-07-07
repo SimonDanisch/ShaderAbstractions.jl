@@ -18,7 +18,7 @@ function getter_function(io, T, t_str, name, plot)
     println(io, t_str, " get_$(name)(){return $name;}")
 end
 
-function getter_function(io, ::Sampler, t_str, name, plot)
+function getter_function(io, ::AbstractSampler, t_str, name, plot)
 end
 
 
