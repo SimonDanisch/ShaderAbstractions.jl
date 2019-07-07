@@ -5,17 +5,31 @@ Holder of Shader context info, can also be used for dispatch
 abstract type AbstractContext end
 
 """
+Array that has an update objects, one can register to with `conncet!(x::UpdatableArray, y::AbstractArray)`
+To register to changes to the array.
+Any UpdatableArray needs to implement updater to return the updatable object
+"""
+abstract type UpdatableArray{T, N} <: AbstractArray{T, N} end
+
+"""
+Get's the updater object of an updatable array
+"""
+function updater end
+connect!(x::UpdatableArray, y::AbstractArray) = connect!(updater(x), y)
+
+
+"""
 A Sampler, that supports interpolated access
 """
-abstract type AbstractSampler{T, N} <: DenseArray{T, N} end
+abstract type AbstractSampler{T, N} <: UpdatableArray{T, N} end
 
-abstract type AbstractSamplerBuffer{T} <: DenseVector{T} end
+abstract type AbstractSamplerBuffer{T} <: UpdatableArray{T, 1} end
 
 
 """
 VertexArray, holds the vertex info a vertex shaders maps over.
 """
-abstract type AbstractVertexArray{T} <: DenseVector{T} end
+abstract type AbstractVertexArray{T} <: UpdatableArray{T, 1} end
 
 struct ArrayUpdater{T}
     parent::T
@@ -41,11 +55,11 @@ end
 
 macro update_operations(Typ)
     quote
-        Base.setindex!(A::$Typ, value, idx::Int) = setindex!(updater(A), value, idx)
+        Base.setindex!(A::$Typ, value, idx) = setindex!(updater(A), value, idx)
         Base.push!(A::$Typ, value) = push!(updater(A), value)
         Base.resize!(A::$Typ, value) = resize!(updater(A), value)
         Base.size(A::$Typ) = size(updater(A).parent)
-        Base.getindex(A::$Typ, idx::Int) = getindex(updater(A).parent, idx)
+        Base.getindex(A::$Typ, idx...) = getindex(updater(A).parent, idx...)
     end
 end
 
@@ -60,9 +74,6 @@ struct Sampler{T, N, Data} <: AbstractSampler{T, N}
 end
 updater(x::Sampler) = x.updates
 @update_operations Sampler
-Base.getindex(x::Sampler, i) = getfield(x, :data)[i]
-Base.getindex(x::Sampler) = getindex(x, 1)
-Base.getindex(x::Sampler, i, j) = getfield(x, :data)[i, j]
 
 function Sampler(
         data::AbstractArray{T, N};
@@ -105,7 +116,7 @@ end
 updater(x::BufferSampler) = x.updates
 @update_operations BufferSampler
 
-struct Buffer{T, Data} <: AbstractVector{T}
+struct Buffer{T, Data} <: UpdatableArray{T, 1}
     data::Data
     updates::ArrayUpdater{Data}
 end
