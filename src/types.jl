@@ -104,6 +104,9 @@ end
 function Sampler(obs::Observable; kw...)
     buff = Sampler(obs[]; kw...)
     on(obs) do val
+        if length(val) != length(buff)
+            resize!(buff, length(val))
+        end
         buff[:] = val
     end
     buff
