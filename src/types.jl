@@ -104,12 +104,10 @@ end
 function Sampler(obs::Observable; kw...)
     buff = Sampler(obs[]; kw...)
     on(obs) do val
-        if length(val) != length(buff)
-            resize!(buff, length(val))
-        end
+        length(val) != length(buff) && resize!(buff, length(val))
         buff[:] = val
     end
-    buff
+    return buff
 end
 
 struct BufferSampler{T, Data} <: AbstractSamplerBuffer{T}
@@ -135,6 +133,7 @@ Buffer(x::Buffer) = x
 function Buffer(obs::Observable)
     buff = Buffer(obs[])
     on(obs) do val
+        length(val) != length(buff) && resize!(buff, length(val))
         buff[:] = val
     end
     buff
@@ -149,10 +148,12 @@ struct VertexArray{T, Data} <: AbstractVertexArray{T}
 end
 
 Tables.schema(va::VertexArray) = Tables.schema(getfield(va, :data))
+
 function Tables.columns(vao::VertexArray)
     s = Tables.schema(vao)
     return NamedTuple{s.names}(map(x-> getproperty(vao, x), s.names))
 end
+
 function Base.pairs(vao::VertexArray)
     nt = Tables.columns(vao)
     return zip(keys(nt), values(nt))
@@ -161,9 +162,9 @@ end
 function Base.getproperty(x::VertexArray, name::Symbol)
     getproperty(getfield(x, :data), name)
 end
+
 Base.size(x::VertexArray) = size(getfield(x, :data))
 Base.getindex(x::VertexArray, i) = getindex(getfield(x, :data), i)
-
 
 function VertexArray(data::AbstractArray{T}) where T
     return VertexArray{T, typeof(data)}(data)
@@ -180,12 +181,13 @@ function VertexArray(points, faces = nothing; kw_args...)
     else
         GeometryBasics.connect(vertices, faces)
     end
-    VertexArray(data)
+    return VertexArray(data)
 end
+
 function VertexArray(; meta...)
     buffers = map(Buffer, values(meta))
     m = StructArray(; buffers...)
-    VertexArray(m)
+    return VertexArray(m)
 end
 
 function VertexArray(mesh::GeometryTypes.AbstractMesh)
@@ -195,7 +197,6 @@ function VertexArray(mesh::GeometryTypes.AbstractMesh)
     m = GeometryBasics.Mesh(GeometryBasics.meta(vs; data...), fs)
     VertexArray(m)
 end
-
 
 function VertexArray(mesh_obs::Observable)
     mesh = mesh_obs[]
@@ -211,5 +212,5 @@ function VertexArray(mesh_obs::Observable)
     end)
     meta = (k => Buffer(map(x-> GeometryTypes.attributes(x)[k], mesh_obs)) for k in meta_keys)
     m = GeometryBasics.Mesh(GeometryBasics.meta(vs; meta...), fs)
-    VertexArray(m)
+    return VertexArray(m)
 end
