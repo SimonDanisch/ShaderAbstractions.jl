@@ -15,7 +15,12 @@ end
 name_type_iter(x) = (s = Tables.schema(x); zip(s.names, s.types))
 
 function getter_function(io, T, t_str, name, plot)
-    println(io, t_str, " get_$(name)(){return $name;}")
+    getkey = Symbol(string(name, "_", "getter"))
+    if haskey(plot, getkey)
+        println(io, plot[getkey])
+    else
+        println(io, t_str, " get_$(name)(){return $name;}")
+    end
 end
 
 function getter_function(io, ::AbstractSampler, t_str, name, plot)
@@ -57,6 +62,7 @@ function Program(
     uniform_block = sprint() do io
         println(io, "\n// Uniforms: ")
         for (name, v) in uniforms
+            endswith(string(name), "_getter") && continue
             vc = convert_uniform(context, v)
             t_str = type_string(context, vc)
             println(io, "uniform ", t_str, " $name;")
