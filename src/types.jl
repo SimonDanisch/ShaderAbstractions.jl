@@ -44,6 +44,7 @@ for func in (:resize!, :push!, :setindex!)
     @eval function Base.$(func)(vec::ArrayUpdater, args...)
         $(func)(vec.parent, args...)
         vec.update[] = ($(func), args)
+        return vec.parent
     end
 end
 
@@ -114,19 +115,27 @@ struct BufferSampler{T, Data} <: AbstractSamplerBuffer{T}
     data::Data
     updates::ArrayUpdater{Data}
 end
-updater(x::BufferSampler) = x.updates
+updater(x::BufferSampler) = getfield(x, :updates)
 @update_operations BufferSampler
 
 struct Buffer{T, Data} <: UpdatableArray{T, 1}
     data::Data
     updates::ArrayUpdater{Data}
 end
-updater(x::Buffer) = x.updates
+updater(x::Buffer) = getfield(x, :updates)
 @update_operations Buffer
 
 Base.convert(::Type{<: Buffer}, x::Buffer) = x
 Base.convert(::Type{<: Buffer}, x) = Buffer(x)
 Base.convert(::Type{<: Buffer{T, Data}}, x::Buffer{T, Data}) where {T, Data} = x
+data(x::Buffer) = getfield(x, :data)
+function Base.getproperty(x::Buffer, name::Symbol)
+    return getproperty(data(x), name)
+end
+
+function Base.propertynames(x::Buffer)
+    return propertynames(data(x))
+end
 
 Buffer(x::Buffer) = x
 
@@ -163,6 +172,10 @@ function Base.getproperty(x::VertexArray, name::Symbol)
     getproperty(getfield(x, :data), name)
 end
 
+function Base.propertynames(x::VertexArray)
+    propertynames(getfield(x, :data))
+end
+
 Base.size(x::VertexArray) = size(getfield(x, :data))
 Base.getindex(x::VertexArray, i) = getindex(getfield(x, :data), i)
 
@@ -187,30 +200,5 @@ end
 function VertexArray(; meta...)
     buffers = map(Buffer, values(meta))
     m = StructArray(; buffers...)
-    return VertexArray(m)
-end
-
-function VertexArray(mesh::GeometryTypes.AbstractMesh)
-    data = GeometryTypes.attributes(mesh)
-    vs = GeometryBasics.Point.(pop!(data, :vertices))
-    fs = convert(Vector{GeometryBasics.TriangleFace{Cuint}}, pop!(data, :faces))
-    m = GeometryBasics.Mesh(GeometryBasics.meta(vs; data...), fs)
-    VertexArray(m)
-end
-
-function VertexArray(mesh_obs::Observable)
-    mesh = mesh_obs[]
-    meta_keys = setdiff(keys(GeometryTypes.attributes(mesh)), [:vertices, :faces])
-    vs = Buffer(map(mesh_obs) do mesh
-        GeometryBasics.Point.(GeometryTypes.vertices(mesh))
-    end)
-    fs = Buffer(map(mesh_obs) do mesh
-        convert(
-            Vector{GeometryBasics.TriangleFace{Cuint}},
-            GeometryTypes.faces(mesh)
-        )
-    end)
-    meta = (k => Buffer(map(x-> GeometryTypes.attributes(x)[k], mesh_obs)) for k in meta_keys)
-    m = GeometryBasics.Mesh(GeometryBasics.meta(vs; meta...), fs)
     return VertexArray(m)
 end

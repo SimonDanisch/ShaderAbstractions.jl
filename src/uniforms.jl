@@ -13,7 +13,6 @@ const SmallMats = Union{small_mats...}
 const SmallArrays = Union{small_arrays...}
 const NativeTypes = Union{native_types...}
 
-
 """
     native_type(context, Int128)
 Returns a native type for a non native type.
