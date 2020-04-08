@@ -26,7 +26,7 @@ end
 function input_block(context::AbstractContext, io, input_array)
     for name in propertynames(input_array)
         element = getproperty(input_array, name)
-        input_element(context, io, element, name)
+        input_element(context, Vertex(), io, element, name)
     end
 end
 
@@ -47,9 +47,10 @@ function InstancedProgram(
         println(io, "\n// Per instance attributes: ")
         for name in propertynames(per_instance)
             prop = getproperty(per_instance, name)
+            T = eltype(prop)
             t_str = type_string(context, T)
             println(io, "in ", t_str, " $name;")
-            getter_function(io, T, t_str, name, uniforms)
+            getter_function(io, T, t_str, name)
         end
         println(io)
     end
@@ -99,7 +100,7 @@ function Program(
             vc = convert_uniform(context, v)
             t_str = type_string(context, vc)
             println(io, "uniform ", t_str, " $name;")
-            getter_function(io, vc, t_str, name, uniforms)
+            getter_function(io, vc, t_str, name)
             c_uniforms[name] = vc
         end
         println(io)
