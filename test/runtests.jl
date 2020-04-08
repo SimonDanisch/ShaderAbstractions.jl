@@ -1,14 +1,14 @@
 using ShaderAbstractions, LinearAlgebra
 using ShaderAbstractions: VertexArray
-using Test, GeometryTypes
+using Test, GeometryBasics
 import GeometryBasics
 
 struct WebGL <: ShaderAbstractions.AbstractContext end
 
-m = GLNormalMesh(Sphere(Point3f0(0), 1f0))
+m = normal_mesh(Sphere(Point3f0(0), 1f0))
 
 mvao = VertexArray(m)
-instances = VertexArray(positions = rand(GeometryBasics.Point{3, Float32}, 100))
+instances = VertexArray(positions = rand(Point{3, Float32}, 100))
 
 x = ShaderAbstractions.InstancedProgram(
     WebGL(),
