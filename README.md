@@ -10,7 +10,7 @@ You construct the objects, and then render them in any backend.
 ```Julia
 using ShaderAbstractions, LinearAlgebra
 using ShaderAbstractions: VertexArray
-using Test, GeometryTypes
+using Test, GeometryBasics
 import GeometryBasics
 
 struct WebGL <: ShaderAbstractions.AbstractContext end

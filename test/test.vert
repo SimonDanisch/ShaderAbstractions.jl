@@ -3,7 +3,6 @@ precision mediump int;
 precision mediump float;
 precision mediump sampler2D;
 precision mediump sampler3D;
-
 // Instance inputs: 
 in vec3 position;
 vec3 get_position(){return position;}
