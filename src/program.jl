@@ -23,17 +23,23 @@ end
 function getter_function(io, ::AbstractSampler, t_str, name)
 end
 
-function input_block(context::AbstractContext, io, input_array)
-    for name in propertynames(input_array)
-        element = getproperty(input_array, name)
-        input_element(context, Vertex(), io, element, name)
+
+function input_element(context::AbstractContext, stage::Vertex, io::IO, element::AbstractVector{T}, name::Symbol, uniforms) where {T}
+    t_str = type_string(context, T)
+    println(io, "in ", t_str, " $name;")
+    getkey = Symbol(string(name, "_", "getter"))
+    if haskey(uniforms, getkey)
+        println(io, uniforms[getkey])
+    else
+        getter_function(io, T, t_str, name)
     end
 end
 
-function input_element(context::AbstractContext, stage::Vertex, io::IO, element::AbstractVector{T}, name::Symbol) where {T}
-    t_str = type_string(context, T)
-    println(io, "in ", t_str, " $name;")
-    getter_function(io, T, t_str, name)
+function input_block(context::AbstractContext, io, input_array, uniforms)
+    for name in propertynames(input_array)
+        element = getproperty(input_array, name)
+        input_element(context, Vertex(), io, element, name, uniforms)
+    end
 end
 
 function InstancedProgram(
@@ -45,13 +51,7 @@ function InstancedProgram(
     )
     instance_attributes = sprint() do io
         println(io, "\n// Per instance attributes: ")
-        for name in propertynames(per_instance)
-            prop = getproperty(per_instance, name)
-            T = eltype(prop)
-            t_str = type_string(context, T)
-            println(io, "in ", t_str, " $name;")
-            getter_function(io, T, t_str, name)
-        end
+        input_block(context, io, per_instance, uniforms)
         println(io)
     end
 
@@ -100,14 +100,19 @@ function Program(
             vc = convert_uniform(context, v)
             t_str = type_string(context, vc)
             println(io, "uniform ", t_str, " $name;")
-            getter_function(io, vc, t_str, name)
+            getkey = Symbol(string(name, "_", "getter"))
+            if haskey(uniforms, getkey)
+                println(io, uniforms[getkey])
+            else
+                getter_function(io, vc, t_str, name)
+            end
             c_uniforms[name] = vc
         end
         println(io)
     end
     src = sprint() do io
         println(io, "// Instance inputs: ")
-        input_block(context, io, instance)
+        input_block(context, io, instance, uniforms)
         println(io, uniform_block)
         println(io)
         println(io, vertshader)
