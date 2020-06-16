@@ -56,7 +56,7 @@ end
 
 macro update_operations(Typ)
     quote
-        Base.setindex!(A::$Typ, value, idx) = setindex!(updater(A), value, idx)
+        Base.setindex!(A::$Typ, value, idx...) = setindex!(updater(A), value, idx...)
         Base.push!(A::$Typ, value) = push!(updater(A), value)
         Base.resize!(A::$Typ, value) = resize!(updater(A), value)
         Base.size(A::$Typ) = size(updater(A).parent)
