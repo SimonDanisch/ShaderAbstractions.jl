@@ -110,7 +110,6 @@ type_postfix(context::AbstractContext, x::Type{Float32}) = "fv"
 type_postfix(context::AbstractContext, x::Type{Cint})    = "iv"
 type_postfix(context::AbstractContext, x::Type{Cuint})   = "uiv"
 
-
 type_string(context::AbstractContext, x::T) where {T} = type_string(context, T)
 type_string(context::AbstractContext, t::Type{Float32}) = "float"
 type_string(context::AbstractContext, t::Type{Float64}) = "double"

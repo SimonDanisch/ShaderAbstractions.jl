@@ -67,20 +67,20 @@ end
 function vertex_header(context::AbstractContext)
     return """
     #version 300 es
-    precision mediump int;
-    precision mediump float;
-    precision mediump sampler2D;
-    precision mediump sampler3D;
+    precision highp int;
+    precision highp float;
+    precision highp sampler2D;
+    precision highp sampler3D;
     """
 end
 
 function fragment_header(context::AbstractContext)
     return """
     #version 300 es
-    precision mediump int;
-    precision mediump float;
-    precision mediump sampler2D;
-    precision mediump sampler3D;
+    precision highp int;
+    precision highp float;
+    precision highp sampler2D;
+    precision highp sampler3D;
 
     out vec4 fragment_color;
     """
@@ -98,7 +98,12 @@ function Program(
         for (name, v) in uniforms
             endswith(string(name), "_getter") && continue
             vc = convert_uniform(context, v)
-            t_str = type_string(context, vc)
+            t_str = try 
+                type_string(context, vc)
+            catch e
+                println(stderr, "Uniform ", name, " has unsupported type: ", typeof(v))
+                rethrow(e)
+            end
             println(io, "uniform ", t_str, " $name;")
             getkey = Symbol(string(name, "_", "getter"))
             if haskey(uniforms, getkey)
