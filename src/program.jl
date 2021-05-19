@@ -98,7 +98,12 @@ function Program(
         for (name, v) in uniforms
             endswith(string(name), "_getter") && continue
             vc = convert_uniform(context, v)
-            t_str = type_string(context, vc)
+            t_str = try
+               type_string(context, vc)
+            catch e
+                @error("Type $(typeof(vc)) isn't supported for uniform: $(name)")
+                rethrow(e)
+            end
             println(io, "uniform ", t_str, " $name;")
             getkey = Symbol(string(name, "_", "getter"))
             if haskey(uniforms, getkey)
