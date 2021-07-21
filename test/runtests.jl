@@ -5,7 +5,7 @@ import GeometryBasics
 
 struct WebGL <: ShaderAbstractions.AbstractContext end
 
-m = normal_mesh(Sphere(Point3f0(0), 1f0))
+m = normal_mesh(Sphere(Point3f(0), 1f0))
 
 mvao = VertexArray(m)
 instances = VertexArray(positions = rand(Point{3, Float32}, 100))
@@ -15,9 +15,9 @@ x = ShaderAbstractions.InstancedProgram(
     "void main(){}\n", "void main(){}\n",
     mvao,
     instances,
-    model = Mat4f0(I),
-    view = Mat4f0(I),
-    projection = Mat4f0(I),
+    model = Mat4f(I),
+    view = Mat4f(I),
+    projection = Mat4f(I),
 )
 
 @test x.program.fragment_source == read(joinpath(@__DIR__, "test.frag"), String)
