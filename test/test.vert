@@ -10,10 +10,10 @@ in vec3 normals;
 vec3 get_normals(){return normals;}
 
 // Uniforms: 
-uniform mat4 model;
-mat4 get_model(){return model;}
 uniform mat4 view;
 mat4 get_view(){return view;}
+uniform mat4 model;
+mat4 get_model(){return model;}
 uniform mat4 projection;
 mat4 get_projection(){return projection;}
 

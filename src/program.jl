@@ -46,8 +46,8 @@ function InstancedProgram(
         context::AbstractContext,
         vertshader, fragshader,
         instance::AbstractVector,
-        per_instance::AbstractVector;
-        uniforms...
+        per_instance::AbstractVector,
+        uniforms::Dict{Symbol};
     )
     instance_attributes = sprint() do io
         println(io, "\n// Per instance attributes: ")
@@ -59,7 +59,7 @@ function InstancedProgram(
         context,
         instance_attributes * vertshader,
         fragshader,
-        instance; uniforms...
+        instance, uniforms
     )
     return InstancedProgram(p, per_instance)
 end
@@ -89,10 +89,9 @@ end
 function Program(
         context::AbstractContext,
         vertshader, fragshader,
-        instance::AbstractVector;
-        uniforms...
+        instance::AbstractVector, uniforms::Dict{Symbol};
     )
-    c_uniforms = Dict{Symbol, Any}()
+    converted_uniforms = Dict{Symbol, Any}()
     uniform_block = sprint() do io
         println(io, "\n// Uniforms: ")
         for (name, v) in uniforms
@@ -111,7 +110,7 @@ function Program(
             else
                 getter_function(io, vc, t_str, name)
             end
-            c_uniforms[name] = vc
+            converted_uniforms[name] = vc
         end
         println(io)
     end
@@ -123,7 +122,7 @@ function Program(
         println(io, vertshader)
     end
     Program(
-        context, instance, c_uniforms,
+        context, instance, converted_uniforms,
         vertex_header(context) * src,
         fragment_header(context) * uniform_block * fragshader
     )

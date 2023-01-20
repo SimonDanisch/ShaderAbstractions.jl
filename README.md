@@ -25,8 +25,10 @@ x = ShaderAbstractions.InstancedProgram(
     "void main(){}\n", "void main(){}\n",
     mvao,
     instances,
-    model = Mat4f(I),
-    view = Mat4f(I),
-    projection = Mat4f(I),
+    Dict(
+        :model => Mat4f(I),
+        :view => Mat4f(I),
+        :projection => Mat4f(I),
+    )
 )
 ```
