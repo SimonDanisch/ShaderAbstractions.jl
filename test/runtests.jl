@@ -15,10 +15,11 @@ x = ShaderAbstractions.InstancedProgram(
     "void main(){}\n", "void main(){}\n",
     mvao,
     instances,
-    model = Mat4f(I),
-    view = Mat4f(I),
-    projection = Mat4f(I),
+    Dict(
+        :model => Mat4f(I),
+        :view => Mat4f(I),
+        :projection => Mat4f(I),
+    )
 )
-
 @test x.program.fragment_source == read(joinpath(@__DIR__, "test.frag"), String)
 @test x.program.vertex_source == read(joinpath(@__DIR__, "test.vert"), String)
