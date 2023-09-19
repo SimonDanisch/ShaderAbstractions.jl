@@ -64,7 +64,7 @@ macro update_operations(Typ)
     end
 end
 
-struct Sampler{T, N, Data} <: AbstractSampler{T, N}
+mutable struct Sampler{T, N, Data} <: AbstractSampler{T, N}
     data::Data
     minfilter::Symbol
     magfilter::Symbol # magnification
@@ -73,6 +73,7 @@ struct Sampler{T, N, Data} <: AbstractSampler{T, N}
     color_swizzel::Vector{Symbol}
     updates::ArrayUpdater{Data}
 end
+data(x::Sampler) = getfield(x, :data)
 updater(x::Sampler) = x.updates
 @update_operations Sampler
 
@@ -102,11 +103,24 @@ function Sampler(
     )
 end
 
+# Fallback
+function update!(dest::AbstractArray, src::AbstractArray)
+    if length(dest) != length(src)
+        resize!(dest, length(src))
+    end
+    copy!(dest, src)
+end
+
+function update!(s::Sampler{T,N,D}, new_data::AbstractArray{T2,N}) where {T,T2,N,D}
+    setfield!(s, :data, convert(D, new_data))
+    updater(s).update[] = (update!, (data(s),))
+end
+
+
 function Sampler(obs::Observable; kw...)
     buff = Sampler(obs[]; kw...)
     on(obs) do val
-        length(val) != length(buff) && resize!(buff, length(val))
-        buff[:] = val
+        update!(buff, val)
     end
     return buff
 end
@@ -139,11 +153,18 @@ end
 
 Buffer(x::Buffer) = x
 
+function update!(buff::Buffer, new_data::AbstractVector)
+    if length(buff) != length(new_data)
+        resize!(data(buff), length(new_data))
+    end
+    copy!(data(buff), new_data)
+    updater(buff).update[] = (update!, (data(buff),))
+end
+
 function Buffer(obs::Observable)
     buff = Buffer(obs[])
     on(obs) do val
-        length(val) != length(buff) && resize!(buff, length(val))
-        buff[:] = val
+        update!(buff, val)
     end
     buff
 end
