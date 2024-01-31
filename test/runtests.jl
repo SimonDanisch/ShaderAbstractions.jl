@@ -21,5 +21,6 @@ x = ShaderAbstractions.InstancedProgram(
         :projection => Mat4f(I),
     )
 )
+
 @test x.program.fragment_source == read(joinpath(@__DIR__, "test.frag"), String)
 @test x.program.vertex_source == read(joinpath(@__DIR__, "test.vert"), String)
