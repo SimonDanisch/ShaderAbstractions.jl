@@ -45,7 +45,7 @@ end
 function InstancedProgram(
         context::AbstractContext,
         vertshader, fragshader,
-        instance::AbstractVector,
+        instance::GeometryBasics.AbstractMesh,
         per_instance::AbstractVector,
         uniforms::Dict{Symbol};
     )

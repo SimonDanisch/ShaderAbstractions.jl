@@ -189,6 +189,12 @@ function Base.pairs(vao::VertexArray)
     return zip(keys(nt), values(nt))
 end
 
+function Base.pairs(vao::VertexArray{T, <: Dict}) where T
+    data = getfield(vao, :data)
+    _keys = filter(k -> k != :faces, collect(keys(data)))
+    return zip(_keys, getindex.(Ref(data), _keys))
+end
+
 function Base.getproperty(x::VertexArray, name::Symbol)
     getproperty(getfield(x, :data), name)
 end
@@ -197,25 +203,31 @@ function Base.propertynames(x::VertexArray)
     propertynames(getfield(x, :data))
 end
 
-Base.size(x::VertexArray) = size(getfield(x, :data))
-Base.getindex(x::VertexArray, i) = getindex(getfield(x, :data), i)
+Base.size(x::VertexArray) = size(get(getfield(x, :data), :faces, getfield(x, :data)))
+Base.getindex(x::VertexArray, i) = getindex(get(getfield(x, :data), :faces, getfield(x, :data)), i)
 
 function VertexArray(data::AbstractArray{T}) where T
     return VertexArray{T, typeof(data)}(data)
 end
 
-function VertexArray(points, faces = nothing; kw_args...)
-    vertices = if isempty(kw_args)
-        points
-    else
-        GeometryBasics.meta(points; kw_args...)
-    end
-    data = if faces === nothing
-        vertices
-    else
-        GeometryBasics.connect(vertices, faces)
-    end
-    return VertexArray(data)
+# function VertexArray(points, faces = nothing; kw_args...)
+#     vertices = if isempty(kw_args)
+#         points
+#     else
+#         GeometryBasics.meta(points; kw_args...)
+#     end
+#     data = if faces === nothing
+#         vertices
+#     else
+#         GeometryBasics.connect(vertices, faces)
+#     end
+#     return VertexArray(data)
+# end
+
+function VertexArray(attribs::NamedTuple, faces::AbstractVector)
+    data = Dict{Symbol, Any}(pairs(attribs))
+    data[:faces] = faces
+    return VertexArray{Float32, typeof(data)}(data)
 end
 
 function VertexArray(; meta...)
