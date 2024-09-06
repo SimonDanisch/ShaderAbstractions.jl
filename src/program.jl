@@ -35,9 +35,9 @@ function input_element(context::AbstractContext, stage::Vertex, io::IO, element:
     end
 end
 
-function input_block(context::AbstractContext, io, input_array, uniforms)
-    for name in propertynames(input_array)
-        element = getproperty(input_array, name)
+function input_block(context::AbstractContext, io, vertex_attributes, uniforms)
+    for name in propertynames(vertex_attributes)
+        element = getproperty(vertex_attributes, name)
         input_element(context, Vertex(), io, element, name, uniforms)
     end
 end
@@ -97,7 +97,8 @@ end
 function Program(
         context::AbstractContext,
         vertshader, fragshader,
-        instance::AbstractVector, uniforms::Dict{Symbol};
+        mesh::GeometryBasics.AbstractMesh, 
+        uniforms::Dict{Symbol}
     )
     converted_uniforms = Dict{Symbol, Any}()
     uniform_block = sprint() do io
@@ -124,13 +125,18 @@ function Program(
     end
     src = sprint() do io
         println(io, "// Instance inputs: ")
-        input_block(context, io, instance, uniforms)
+        input_block(context, io, GeometryBasics.vertex_attributes(mesh), uniforms)
         println(io, uniform_block)
         println(io)
         println(io, vertshader)
     end
     Program(
-        context, instance, converted_uniforms,
+        context, 
+        VertexArray(
+            GeometryBasics.vertex_attributes(mesh), 
+            GeometryBasics.faces(mesh)
+        ),
+        converted_uniforms,
         vertex_header(context) * src,
         fragment_header(context) * uniform_block * fragshader
     )
