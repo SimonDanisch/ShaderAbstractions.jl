@@ -187,10 +187,8 @@ function VertexArray(; kwargs...)
     data = map(Buffer, values(kwargs)) 
     return VertexArray(Dict{Symbol, AbstractVector}(pairs(data)))
 end
-
-function VertexArray(pos::AbstractVector)
-    return VertexArray(; position = pos)
-end
+VertexArray(va::VertexArray) = va
+VertexArray(pos::AbstractVector) = VertexArray(; position = pos)
 
 function VertexArray(pos::AbstractVector, faces::AbstractVector; kwargs...)
     return VertexArray(position = pos, faces = faces; kwargs...)
@@ -199,6 +197,11 @@ end
 function VertexArray(attribs::NamedTuple, faces::AbstractVector)
     return VertexArray(faces = faces; attribs...)
 end
+
+function VertexArray(m::GeometryBasics.AbstractMesh)
+    return VertexArray(GeometryBasics.vertex_attributes(m), GeometryBasics.faces(m))
+end
+
 
 indexbuffer(va::VertexArray) = get(va.buffers, :faces, nothing)
 buffer(va::VertexArray, name::Symbol) = va.buffers[name]

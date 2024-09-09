@@ -22,5 +22,5 @@ x = ShaderAbstractions.InstancedProgram(
     )
 )
 
-@test x.program.fragment_source == read(joinpath(@__DIR__, "test.frag"), String)
-@test x.program.vertex_source == read(joinpath(@__DIR__, "test.vert"), String)
+@test x.program.fragment_source == replace(read(joinpath(@__DIR__, "test.frag"), String), "\r\n" => "\n")
+@test x.program.vertex_source   == replace(read(joinpath(@__DIR__, "test.vert"), String), "\r\n" => "\n")

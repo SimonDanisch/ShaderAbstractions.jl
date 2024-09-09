@@ -44,7 +44,7 @@ end
 function InstancedProgram(
         context::AbstractContext,
         vertshader, fragshader,
-        instance::GeometryBasics.AbstractMesh,
+        instance::Union{GeometryBasics.AbstractMesh, VertexArray},
         per_instance::VertexArray,
         uniforms::Dict{Symbol};
     )
@@ -96,7 +96,7 @@ end
 function Program(
         context::AbstractContext,
         vertshader, fragshader,
-        mesh::GeometryBasics.AbstractMesh, 
+        mesh::Union{VertexArray, GeometryBasics.AbstractMesh}, 
         uniforms::Dict{Symbol}
     )
     converted_uniforms = Dict{Symbol, Any}()
@@ -122,10 +122,7 @@ function Program(
         end
         println(io)
     end
-    va = VertexArray(
-        GeometryBasics.vertex_attributes(mesh), 
-        GeometryBasics.faces(mesh)
-    )
+    va = VertexArray(mesh)
     src = sprint() do io
         println(io, "// Instance inputs: ")
         input_block(context, io, va, uniforms)
