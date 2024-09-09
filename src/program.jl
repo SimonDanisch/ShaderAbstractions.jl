@@ -5,7 +5,7 @@ struct Fragment <: ShaderStage end
 
 struct Program
     context::AbstractContext
-    vertexarray::AbstractArray
+    vertexarray::VertexArray
     uniforms::Dict{Symbol, Any}
     vertex_source::String
     fragment_source::String
@@ -13,7 +13,7 @@ end
 
 struct InstancedProgram
     program::Program
-    per_instance::AbstractArray
+    per_instance::VertexArray
 end
 
 function getter_function(io, T, t_str, name)
@@ -36,8 +36,7 @@ function input_element(context::AbstractContext, stage::Vertex, io::IO, element:
 end
 
 function input_block(context::AbstractContext, io, vertex_attributes, uniforms)
-    for name in propertynames(vertex_attributes)
-        element = getproperty(vertex_attributes, name)
+    for (name, element) in buffers(vertex_attributes)
         input_element(context, Vertex(), io, element, name, uniforms)
     end
 end
@@ -46,7 +45,7 @@ function InstancedProgram(
         context::AbstractContext,
         vertshader, fragshader,
         instance::GeometryBasics.AbstractMesh,
-        per_instance::AbstractVector,
+        per_instance::VertexArray,
         uniforms::Dict{Symbol};
     )
     instance_attributes = sprint() do io
@@ -123,19 +122,20 @@ function Program(
         end
         println(io)
     end
+    va = VertexArray(
+        GeometryBasics.vertex_attributes(mesh), 
+        GeometryBasics.faces(mesh)
+    )
     src = sprint() do io
         println(io, "// Instance inputs: ")
-        input_block(context, io, GeometryBasics.vertex_attributes(mesh), uniforms)
+        input_block(context, io, va, uniforms)
         println(io, uniform_block)
         println(io)
         println(io, vertshader)
     end
     Program(
         context, 
-        VertexArray(
-            GeometryBasics.vertex_attributes(mesh), 
-            GeometryBasics.faces(mesh)
-        ),
+        va,
         converted_uniforms,
         vertex_header(context) * src,
         fragment_header(context) * uniform_block * fragshader
