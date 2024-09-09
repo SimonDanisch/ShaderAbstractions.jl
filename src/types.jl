@@ -176,7 +176,7 @@ end
 
 
 struct VertexArray
-    buffers::Dict{Symbol, AbstractVector}
+    buffers::Dict{Symbol, Buffer}
 end
 
 
