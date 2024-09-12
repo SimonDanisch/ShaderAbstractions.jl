@@ -199,7 +199,12 @@ function VertexArray(attribs::NamedTuple, faces::AbstractVector)
 end
 
 function VertexArray(m::GeometryBasics.AbstractMesh)
-    return VertexArray(GeometryBasics.vertex_attributes(m), GeometryBasics.faces(m))
+    va = Dict{Symbol, AbstractVector}()
+    for (k, v) in GeometryBasics.vertex_attributes(m)
+        va[k] = v
+    end
+    va[:faces] = GeometryBasics.faces(m)
+    return VertexArray(va)
 end
 
 
