@@ -69,6 +69,7 @@ mutable struct Sampler{T, N, Data} <: AbstractSampler{T, N}
     minfilter::Symbol
     magfilter::Symbol # magnification
     repeat::NTuple{N, Symbol}
+    mipmap::Bool
     anisotropic::Float32
     color_swizzel::Vector{Symbol}
     updates::ArrayUpdater{Data}
@@ -84,6 +85,7 @@ function Sampler(
         x_repeat  = :clamp_to_edge, #wrap_s
         y_repeat  = x_repeat, #wrap_t
         z_repeat  = x_repeat, #wrap_r
+        mipmap = false,
         anisotropic = 1f0,
         color_swizzel = nothing
     ) where {T, N}
@@ -98,7 +100,7 @@ function Sampler(
     Sampler{T, N, typeof(data)}(
         data, minfilter, magfilter,
         ntuple(i-> (x_repeat, y_repeat, z_repeat)[i], N),
-        anisotropic, swizzel,
+        mipmap, anisotropic, swizzel,
         ArrayUpdater(data)
     )
 end
