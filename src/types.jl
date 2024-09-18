@@ -202,7 +202,7 @@ end
 
 function VertexArray(m::GeometryBasics.AbstractMesh)
     va = Dict{Symbol, AbstractVector}()
-    for (k, v) in GeometryBasics.vertex_attributes(m)
+    for (k, v) in pairs(GeometryBasics.vertex_attributes(m))
         va[k] = v
     end
     va[:faces] = GeometryBasics.faces(m)
