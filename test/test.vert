@@ -8,10 +8,10 @@ precision mediump isampler3D;
 precision mediump usampler2D;
 precision mediump usampler3D;
 // Instance inputs: 
+in vec3 normal;
+vec3 get_normal(){return normal;}
 in vec3 position;
 vec3 get_position(){return position;}
-in vec3 normals;
-vec3 get_normals(){return normals;}
 
 // Uniforms: 
 uniform mat4 view;
