@@ -5,7 +5,7 @@ struct Fragment <: ShaderStage end
 
 struct Program
     context::AbstractContext
-    vertexarray::AbstractArray
+    vertexarray::VertexArray
     uniforms::Dict{Symbol, Any}
     vertex_source::String
     fragment_source::String
@@ -13,7 +13,7 @@ end
 
 struct InstancedProgram
     program::Program
-    per_instance::AbstractArray
+    per_instance::VertexArray
 end
 
 function getter_function(io, T, t_str, name)
@@ -35,9 +35,8 @@ function input_element(context::AbstractContext, stage::Vertex, io::IO, element:
     end
 end
 
-function input_block(context::AbstractContext, io, input_array, uniforms)
-    for name in propertynames(input_array)
-        element = getproperty(input_array, name)
+function input_block(context::AbstractContext, io, vertex_attributes, uniforms)
+    for (name, element) in buffers(vertex_attributes)
         input_element(context, Vertex(), io, element, name, uniforms)
     end
 end
@@ -45,8 +44,8 @@ end
 function InstancedProgram(
         context::AbstractContext,
         vertshader, fragshader,
-        instance::AbstractVector,
-        per_instance::AbstractVector,
+        instance::Union{GeometryBasics.AbstractMesh, VertexArray},
+        per_instance::VertexArray,
         uniforms::Dict{Symbol};
     )
     instance_attributes = sprint() do io
@@ -97,7 +96,8 @@ end
 function Program(
         context::AbstractContext,
         vertshader, fragshader,
-        instance::AbstractVector, uniforms::Dict{Symbol};
+        mesh::Union{VertexArray, GeometryBasics.AbstractMesh}, 
+        uniforms::Dict{Symbol}
     )
     converted_uniforms = Dict{Symbol, Any}()
     uniform_block = sprint() do io
@@ -122,15 +122,18 @@ function Program(
         end
         println(io)
     end
+    va = VertexArray(mesh)
     src = sprint() do io
         println(io, "// Instance inputs: ")
-        input_block(context, io, instance, uniforms)
+        input_block(context, io, va, uniforms)
         println(io, uniform_block)
         println(io)
         println(io, vertshader)
     end
     Program(
-        context, instance, converted_uniforms,
+        context, 
+        va,
+        converted_uniforms,
         vertex_header(context) * src,
         fragment_header(context) * uniform_block * fragshader
     )

@@ -2,8 +2,8 @@
 # All the types native to ogl, wgl and vulkan shaders
 
 const number_types = (Float32, Cint, Cuint, Cdouble)
-const small_vecs = (((StaticVector{N, T} for T in number_types, N in (2, 3, 4)))...,)
-const small_mats = (((StaticArray{Tuple{i, j}, T, 2} for T in ShaderAbstractions.number_types, i in (2, 3, 4), j in (2, 3, 4)))...,)
+const small_vecs = tuple((StaticVector{N, T} for T in number_types, N in (2, 3, 4))...)
+const small_mats = tuple((Mat{R, C, T} for T in number_types, R in (2, 3, 4), C in (2, 3, 4))...)
 const small_arrays = (small_vecs..., small_mats...)
 const native_types = (number_types..., small_arrays...)
 
@@ -33,7 +33,8 @@ native_type(context::AbstractContext, x::Type{T}) where T <: Normed = N0f32
 native_type(context::AbstractContext, x::Type{N0f16}) = x
 native_type(context::AbstractContext, x::Type{N0f8}) = x
 
-native_type(context::AbstractContext, x::Type{<: StaticArray{S, T, N}}) where {S, T, N} = similar_type(x, native_type(context, T))
+native_type(context::AbstractContext, x::Type{<: StaticVector{N, T}}) where {T, N} = similar_type(x, native_type(context, T))
+native_type(context::AbstractContext, x::Type{<: Mat{R, C, T}}) where {R, C, T} = similar_type(x, native_type(context, T))
 
 map_t(f, tuple) = map_t(f, (), tuple)
 map_t(f, result, ::Type{Tuple{}}) = Tuple{result...}
@@ -131,7 +132,7 @@ function type_string(context::AbstractContext, t::Type{<: AbstractSampler{T, D}}
     return str
 end
 
-function type_string(context::AbstractContext, t::Type{<: StaticMatrix})
+function type_string(context::AbstractContext, t::Type{<: Mat})
     M, N = size(t)
     string(type_prefix(context, eltype(t)), "mat", M == N ? M : string(M, "x", N))
 end

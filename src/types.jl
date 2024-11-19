@@ -69,6 +69,7 @@ mutable struct Sampler{T, N, Data} <: AbstractSampler{T, N}
     minfilter::Symbol
     magfilter::Symbol # magnification
     repeat::NTuple{N, Symbol}
+    mipmap::Bool
     anisotropic::Float32
     color_swizzel::Vector{Symbol}
     updates::ArrayUpdater{Data}
@@ -84,6 +85,7 @@ function Sampler(
         x_repeat  = :clamp_to_edge, #wrap_s
         y_repeat  = x_repeat, #wrap_t
         z_repeat  = x_repeat, #wrap_r
+        mipmap = false,
         anisotropic = 1f0,
         color_swizzel = nothing
     ) where {T, N}
@@ -98,7 +100,7 @@ function Sampler(
     Sampler{T, N, typeof(data)}(
         data, minfilter, magfilter,
         ntuple(i-> (x_repeat, y_repeat, z_repeat)[i], N),
-        anisotropic, swizzel,
+        mipmap, anisotropic, swizzel,
         ArrayUpdater(data)
     )
 end
@@ -173,53 +175,42 @@ function Buffer(data::Data) where Data <: AbstractVector
     Buffer{eltype(data), Data}(data, ArrayUpdater(data))
 end
 
-struct VertexArray{T, Data} <: AbstractVertexArray{T}
-    data::Data
+
+
+struct VertexArray
+    buffers::Dict{Symbol, Buffer}
 end
 
-Tables.schema(va::VertexArray) = Tables.schema(getfield(va, :data))
 
-function Tables.columns(vao::VertexArray)
-    s = Tables.schema(vao)
-    return NamedTuple{s.names}(map(x-> getproperty(vao, x), s.names))
+
+function VertexArray(; kwargs...)
+    # TODO: always Buffer?
+    # produces NamedTuple: (name = Buffer(kwargs[name]), ...)
+    data = map(Buffer, values(kwargs)) 
+    return VertexArray(Dict{Symbol, AbstractVector}(pairs(data)))
+end
+VertexArray(va::VertexArray) = va
+VertexArray(pos::AbstractVector) = VertexArray(; position = pos)
+
+function VertexArray(pos::AbstractVector, faces::AbstractVector; kwargs...)
+    return VertexArray(position = pos, faces = faces; kwargs...)
 end
 
-function Base.pairs(vao::VertexArray)
-    nt = Tables.columns(vao)
-    return zip(keys(nt), values(nt))
+function VertexArray(attribs::NamedTuple, faces::AbstractVector)
+    return VertexArray(faces = faces; attribs...)
 end
 
-function Base.getproperty(x::VertexArray, name::Symbol)
-    getproperty(getfield(x, :data), name)
-end
-
-function Base.propertynames(x::VertexArray)
-    propertynames(getfield(x, :data))
-end
-
-Base.size(x::VertexArray) = size(getfield(x, :data))
-Base.getindex(x::VertexArray, i) = getindex(getfield(x, :data), i)
-
-function VertexArray(data::AbstractArray{T}) where T
-    return VertexArray{T, typeof(data)}(data)
-end
-
-function VertexArray(points, faces = nothing; kw_args...)
-    vertices = if isempty(kw_args)
-        points
-    else
-        GeometryBasics.meta(points; kw_args...)
+function VertexArray(m::GeometryBasics.AbstractMesh)
+    va = Dict{Symbol, AbstractVector}()
+    for (k, v) in pairs(GeometryBasics.vertex_attributes(m))
+        va[k] = v
     end
-    data = if faces === nothing
-        vertices
-    else
-        GeometryBasics.connect(vertices, faces)
-    end
-    return VertexArray(data)
+    va[:faces] = GeometryBasics.faces(m)
+    return VertexArray(va)
 end
 
-function VertexArray(; meta...)
-    buffers = map(Buffer, values(meta))
-    m = StructArray(; buffers...)
-    return VertexArray(m)
-end
+
+indexbuffer(va::VertexArray) = get(va.buffers, :faces, nothing)
+buffer(va::VertexArray, name::Symbol) = va.buffers[name]
+buffernames(va::VertexArray) = filter(!=(:faces), collect(keys(va.buffers)))
+buffers(va::VertexArray) = (Pair(name, buffer(va, name)) for name in buffernames(va))
