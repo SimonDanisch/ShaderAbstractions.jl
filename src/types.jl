@@ -113,11 +113,41 @@ function update!(dest::AbstractArray, src::AbstractArray)
     copy!(dest, src)
 end
 
+"""
+    update!(s, data::AbstractArray)
+
+Updates the data of a Sampler or Buffer `s`.
+
+This replaces the internal data held by the sampler/buffer and calls
+`update!(x, data)` where `x` is the object connected to the sampler/buffer.
+"""
 function update!(s::Sampler{T,N,D}, new_data::AbstractArray{T2,N}) where {T,T2,N,D}
     setfield!(s, :data, convert(D, new_data))
     updater(s).update[] = (update!, (data(s),))
 end
 
+"""
+    update!(s)
+
+Updates the object connected to the sampler or buffer `s` with the current data
+in `s`.
+"""
+function update!(s::Sampler)
+    updater(s).update[] = (update!, (data(s),))
+    return
+end
+
+"""
+    update!(s, indices...)
+
+Updates the object connected to the sampler or buffer `s` at the given indices
+using a view of the data in `s`.
+"""
+function update!(s::Sampler, idxs...)
+    v = view(data(s), idxs...)
+    updater(s).update[] = (setindex!, (v, idxs...))
+    return
+end
 
 """
 resize!(s::Sampler{T, D}, size, pad = true)
@@ -214,7 +244,7 @@ end
 function VertexArray(; kwargs...)
     # TODO: always Buffer?
     # produces NamedTuple: (name = Buffer(kwargs[name]), ...)
-    data = map(Buffer, values(kwargs)) 
+    data = map(Buffer, values(kwargs))
     return VertexArray(Dict{Symbol, AbstractVector}(pairs(data)))
 end
 VertexArray(va::VertexArray) = va
