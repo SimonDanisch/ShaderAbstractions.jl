@@ -119,6 +119,34 @@ function update!(s::Sampler{T,N,D}, new_data::AbstractArray{T2,N}) where {T,T2,N
 end
 
 
+"""
+resize!(s::Sampler{T, D}, size, pad = true)
+
+Resizes a D-dimensional Sampler by replacing the underlying array.
+
+If `pad` is true, the data will be padded such that `s[i, j, k]` returns the
+same value as before. If `pad` is false `s[i]` will return the same
+value instead.
+"""
+resize!
+
+for D in (2, 3)
+    @eval function Base.resize!(s::Sampler{T, $D}, new_size, pad = true) where {T}
+        A = similar(data(s), new_size)
+        if pad
+            rs = range.(1, min.(size(data(s)), new_size))
+            copyto!(view(A, rs), view(data(s), rs))
+            # backend resize?
+        else
+            N = min(length(data(s)), length(A))
+            copyto!(view(A, 1:N), view(data(s), 1:N))
+        end
+        setfield!(s, :data, A)
+        updater(s).update[] = (update!, (data(s),))
+        return s
+    end
+end
+
 function Sampler(obs::Observable; kw...)
     buff = Sampler(obs[]; kw...)
     on(obs) do val
