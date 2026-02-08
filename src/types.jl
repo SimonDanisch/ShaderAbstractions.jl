@@ -116,10 +116,10 @@ end
 """
     update!(s, data::AbstractArray)
 
-Updates the data of a Sampler or Buffer `s`.
+Updates the data of a Sampler `s`.
 
-This replaces the internal data held by the sampler/buffer and calls
-`update!(x, data)` where `x` is the object connected to the sampler/buffer.
+This replaces the internal data held by the sampler and calls
+`update!(x, data)` where `x` is the object connected to the sampler.
 """
 function update!(s::Sampler{T,N,D}, new_data::AbstractArray{T2,N}) where {T,T2,N,D}
     setfield!(s, :data, convert(D, new_data))
@@ -129,7 +129,7 @@ end
 """
     update!(s)
 
-Updates the object connected to the sampler or buffer `s` with the current data
+Updates the object connected to the sampler `s` with the current data
 in `s`.
 """
 function update!(s::Sampler)
@@ -140,7 +140,7 @@ end
 """
     update!(s, indices...)
 
-Updates the object connected to the sampler or buffer `s` at the given indices
+Updates the object connected to the sampler `s` at the given indices
 using a view of the data in `s`.
 """
 function update!(s::Sampler, idxs...)
