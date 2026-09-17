@@ -113,11 +113,69 @@ function update!(dest::AbstractArray, src::AbstractArray)
     copy!(dest, src)
 end
 
+"""
+    update!(s, data::AbstractArray)
+
+Updates the data of a Sampler `s`.
+
+This replaces the internal data held by the sampler and calls
+`update!(x, data)` where `x` is the object connected to the sampler.
+"""
 function update!(s::Sampler{T,N,D}, new_data::AbstractArray{T2,N}) where {T,T2,N,D}
     setfield!(s, :data, convert(D, new_data))
     updater(s).update[] = (update!, (data(s),))
 end
 
+"""
+    update!(s)
+
+Updates the object connected to the sampler `s` with the current data
+in `s`.
+"""
+function update!(s::Sampler)
+    updater(s).update[] = (update!, (data(s),))
+    return
+end
+
+"""
+    update!(s, indices...)
+
+Updates the object connected to the sampler `s` at the given indices
+using a view of the data in `s`.
+"""
+function update!(s::Sampler, idxs...)
+    v = view(data(s), idxs...)
+    updater(s).update[] = (setindex!, (v, idxs...))
+    return
+end
+
+"""
+resize!(s::Sampler{T, D}, size, pad = true)
+
+Resizes a D-dimensional Sampler by replacing the underlying array.
+
+If `pad` is true, the data will be padded such that `s[i, j, k]` returns the
+same value as before. If `pad` is false `s[i]` will return the same
+value instead.
+"""
+resize!
+
+for D in (2, 3)
+    @eval function Base.resize!(s::Sampler{T, $D}, new_size, pad = true) where {T}
+        A = similar(data(s), new_size)
+        if pad
+            rs = range.(1, min.(size(data(s)), new_size))
+            copyto!(view(A, rs), view(data(s), rs))
+            # backend resize?
+        else
+            N = min(length(data(s)), length(A))
+            copyto!(view(A, 1:N), view(data(s), 1:N))
+        end
+        setfield!(s, :data, A)
+        updater(s).update[] = (update!, (data(s),))
+        return s
+    end
+end
 
 function Sampler(obs::Observable; kw...)
     buff = Sampler(obs[]; kw...)
@@ -186,7 +244,7 @@ end
 function VertexArray(; kwargs...)
     # TODO: always Buffer?
     # produces NamedTuple: (name = Buffer(kwargs[name]), ...)
-    data = map(Buffer, values(kwargs)) 
+    data = map(Buffer, values(kwargs))
     return VertexArray(Dict{Symbol, AbstractVector}(pairs(data)))
 end
 VertexArray(va::VertexArray) = va
